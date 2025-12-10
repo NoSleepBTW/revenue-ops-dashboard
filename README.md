@@ -1,8 +1,15 @@
-# Revenue & Operations Intelligence Dashboard
+Welcome to your new dbt project!
 
-Built with DuckDB + dbt + Streamlit ($0 stack) for revenue/ops analytics.
+### Using the starter project
 
-## Setup
-- Clone: `git clone git@github.com:NoSleepBTW/revenue-ops-dashboard.git`
-- Install: `pip3 install dbt-duckdb dbt-core streamlit pandas pyarrow`
-- Run: `dbt debug` to verify.
+Try running the following commands:
+- dbt run
+- dbt test
+
+
+### Resources:
+- Learn more about dbt [in the docs](https://docs.getdbt.com/docs/introduction)
+- Check out [Discourse](https://discourse.getdbt.com/) for commonly asked questions and answers
+- Join the [chat](https://community.getdbt.com/) on Slack for live discussions and support
+- Find [dbt events](https://events.getdbt.com) near you
+- Check out [the blog](https://blog.getdbt.com/) for the latest news on dbt's development and best practices

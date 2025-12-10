@@ -1,35 +1,20 @@
-# Python
-__pycache__/
-*.py[cod]
-*.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
 
-# DuckDB
+target/
+dbt_packages/
+logs/
+# Raw data — never commit
+data/raw/*
+
+# DuckDB database file — never commit
+dev.duckdb
 *.duckdb
 
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
+# Any other big files
+*.csv
+*.json
+*.zip
+# Raw data and database — never commit
+data/raw/
+dev.duckdb
+scripts/dev.duckdb
+*.duckdb
