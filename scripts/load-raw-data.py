@@ -3,7 +3,7 @@ import pandas as pd
 import pathlib
 import json
 
-con = duckdb.connect("dev.duckdb")
+con = duckdb.connect("../dev.duckdb")
 raw_path = pathlib.Path("../data/raw")
 
 print("Starting raw data load...\n")
