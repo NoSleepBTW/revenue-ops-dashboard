@@ -3,9 +3,12 @@ import pandas as pd
 import pathlib
 import json
 
+# Setup & Connection
 con = duckdb.connect("../dev.duckdb")
 raw_path = pathlib.Path("../data/raw")
+staging_dir = pathlib.Path('../models/staging')
 
+# Load Raw Data
 print("Starting raw data load...\n")
 
 for file_path in sorted(raw_path.glob("*.*")):
@@ -13,7 +16,7 @@ for file_path in sorted(raw_path.glob("*.*")):
         continue
 
     table_name = f"raw_{file_path.stem.lower()}"
-    print(f"Loading {file_path.name}...", end=" ")
+    print(f"Loading {file_path.name}", end=" ")
 
     try:
         if file_path.suffix == ".csv":
@@ -39,5 +42,41 @@ for file_path in sorted(raw_path.glob("*.*")):
     except Exception as e:
         print(f"failed → {e}")
 
-print("\nData load complete.")
+# Clean Data Using our Staging Files 
+for sql_file in sorted(staging_dir.glob("*.sql")):
+    file_name = sql_file.stem
+    core_name = file_name.replace("stg_","")
+    table_name = f"raw_{core_name}"
+    
+    print(f"Cleaning Table: {table_name}...")
+    
+    try:
+        pre_change = con.execute(f"""
+                                 SELECT column_name, data_type
+                                 FROM information_schema.columns
+                                 WHERE table_name = '{table_name}'
+                                 """).fetchall()
+        
+        if pre_change:
+            print(f"Existing Schema: {pre_change}")
+        else:
+            print(f"{table_name} not found.")
+            
+        with open(sql_file, "r") as f:
+            query = f.read()
+        
+        con.execute(query)
+        print(" → Success")
+        
+        post_change = con.execute(f"""
+                                 SELECT column_name, data_type
+                                 FROM information_schema.columns
+                                 WHERE table_name = '{table_name}'
+                                 """).fetchall()
+        print(f"New Schema: {post_change}\n")
+    
+    except Exception as e:
+        print(f"failed → {e}\n")
+            
+print("\nData load and stage complete.")
 con.close()

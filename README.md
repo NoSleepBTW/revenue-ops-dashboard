@@ -1,15 +1,44 @@
-Welcome to your new dbt project!
+# Revenue Operations Dashboard
 
-### Using the starter project
+A local-first data pipeline being built to analyze revenue streams and user transaction data.
 
-Try running the following commands:
-- dbt run
-- dbt test
+## 🏗 Architecture
+This project uses a lightweight, Python-driven ETL pipeline to orchestrate a DuckDB database.
 
+* **Database:** DuckDB (Local file `dev.duckdb`)
+* **Orchestration:** Python (`scripts/load-raw-data.py`)
+* **Transformation:** Standard SQL (Staging & Cleaning)
 
-### Resources:
-- Learn more about dbt [in the docs](https://docs.getdbt.com/docs/introduction)
-- Check out [Discourse](https://discourse.getdbt.com/) for commonly asked questions and answers
-- Join the [chat](https://community.getdbt.com/) on Slack for live discussions and support
-- Find [dbt events](https://events.getdbt.com) near you
-- Check out [the blog](https://blog.getdbt.com/) for the latest news on dbt's development and best practices
+## ⚡️ Current Status
+**Phase 1: Ingestion & Staging (Complete)**
+* Raw data ingestion pipeline is active.
+* Staging models are implemented for cleaning, type casting, and PII masking.
+* Scope focused purely on revenue operations (Fraud data removed).
+
+**Phase 2: Optimization (In Progress)**
+* Indexing strategies for high-performance querying.
+
+**Phase 3: Visualization (Planned)**
+* Streamlit dashboard for revenue reporting.
+
+## 📂 Project Structure
+
+* `data/raw/`: Source CSV/JSON files (Cards, Transactions, Users, MCC Codes).
+* `models/`: SQL logic.
+    * `staging/`: Current cleaning and standardization scripts.
+    * `intermediate/`: Planned joins.
+* `scripts/`:
+    * `load-raw-data.py`: Main pipeline. Ingests raw data and executes staging SQL.
+
+## 🚀 How to Run
+
+1.  **Install Dependencies:**
+    ```bash
+    pip install duckdb pandas
+    ```
+
+2.  **Run the Pipeline:**
+    This script loads raw data and applies staging transformations.
+    ```bash
+    python scripts/load-raw-data.py
+    ```
