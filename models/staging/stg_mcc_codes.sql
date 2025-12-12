@@ -1,13 +1,8 @@
--- Run with: duckdb dev.duckdb -s ".read models/staging/stg_mcc_codes.sql"
--- Transform data
-ALTER TABLE raw_mcc_codes RENAME "0" TO category;
+-- Transform Data
+ALTER TABLE mcc_codes
+RENAME COLUMN "0" TO category;
 
-ALTER TABLE raw_mcc_codes
-ALTER mcc TYPE SMALLINT;
-
-ALTER TABLE raw_mcc_codes
-ALTER mcc
-SET
-    NOT NULL;
-
-ALTER TABLE raw_mcc_codes ADD PRIMARY KEY (mcc);
+-- Apply Type Casting & PK
+ALTER TABLE mcc_codes
+ALTER COLUMN mcc TYPE SMALLINT USING CAST(mcc AS SMALLINT),
+ADD PRIMARY KEY (mcc);

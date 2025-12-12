@@ -1,28 +1,28 @@
-# === Core language detection (Python + SQL + Jupyter) ===
+# === Core Languages ===
 *.py        text diff=python linguist-language=Python
 *.ipynb     text diff=jupyter linguist-language=Python
 *.sql       text diff=sql linguist-language=SQL linguist-detectable=true
 
-# === DuckDB & binary data files (hide from diffs & stats) ===
+# === Database & Binaries ===
 *.duckdb            binary linguist-vendored
 *.duckdb.wal        binary linguist-vendored
 *.parquet           binary linguist-vendored
 
-# === Human-readable data (keep diffable) ===
+# === Data Formats ===
 *.csv       text diff=csv eol=lf
 *.tsv       text diff=csv eol=lf
 *.json      text diff=json eol=lf
 *.jsonl     text diff=json eol=lf
 
-# === Config files ===
+# === Config Files ===
 *.yaml      text diff=yaml
 *.yml       text diff=yaml
 
-# === Line endings ===
+# === Line Endings ===
 * text=auto eol=lf
 *.bat       text eol=crlf
 *.ps1       text eol=crlf
 
-# === Optional: hide data folders from GitHub language bar ===
+# === Vendor / Excludes ===
 data/** linguist-vendored
 tests/data/** linguist-vendored

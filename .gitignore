@@ -1,20 +1,30 @@
+# === Python System Files ===
+__pycache__/
+*.py[cod]
+.venv/
+venv/
 
-target/
-dbt_packages/
-logs/
-# Raw data — never commit
+# Environmental Variables (for privacy)
+.env
+.sqlfluff
+
+# Mac OS System Files
+.DS_Store
+
+# IDE Settings
+.vscode/
+.idea/
+
+# Raw Data
 data/raw/*
+!data/raw/.gitkeep
 
-# DuckDB database file — never commit
-dev.duckdb
-*.duckdb
+# Logs
+logs/
+*.log
 
-# Any other big files
+# Large Files
 *.csv
 *.json
 *.zip
-# Raw data and database — never commit
-data/raw/
-dev.duckdb
-scripts/dev.duckdb
-*.duckdb
+*.parquet

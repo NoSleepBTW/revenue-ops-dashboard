@@ -1,45 +1,56 @@
--- Run with: duckdb dev.duckdb -s ".read models/staging/stg_users_data.sql"
--- Transform data
-ALTER TABLE raw_users_data
-ALTER id TYPE SMALLINT;
+-- Transform Data
+-- Clean Currency (remove $, commas)
+UPDATE users_data
+SET per_capita_income = CAST(
+  REPLACE(
+    REPLACE(
+      CAST(per_capita_income AS TEXT),
+      '$',
+      ''
+    ),
+    ',',
+    ''
+  ) AS INTEGER
+),
+yearly_income = CAST(
+  REPLACE(
+    REPLACE(
+      CAST(yearly_income AS TEXT),
+      '$',
+      ''
+    ),
+    ',',
+    ''
+  ) AS INTEGER
+),
+total_debt = CAST(
+  REPLACE(
+    REPLACE(
+      CAST(total_debt AS TEXT),
+      '$',
+      ''
+    ),
+    ',',
+    ''
+  ) AS INTEGER
+);
 
-ALTER TABLE raw_users_data
-ALTER id
-SET
-    NOT NULL;
-
-ALTER TABLE raw_users_data ADD PRIMARY KEY (id);
-
-ALTER TABLE raw_users_data
-ALTER current_age TYPE TINYINT;
-
-ALTER TABLE raw_users_data
-ALTER retirement_age TYPE TINYINT;
-
-ALTER TABLE raw_users_data
-ALTER birth_year TYPE SMALLINT;
-
-ALTER TABLE raw_users_data
-ALTER birth_month TYPE TINYINT;
-
--- Currency
-UPDATE raw_users_data
-SET
-    per_capita_income = REPLACE (REPLACE (per_capita_income, '$', ''), ',', ''),
-    yearly_income = REPLACE (REPLACE (yearly_income, '$', ''), ',', ''),
-    total_debt = REPLACE (REPLACE (total_debt, '$', ''), ',', '');
-
-ALTER TABLE raw_users_data
-ALTER per_capita_income TYPE INTEGER;
-
-ALTER TABLE raw_users_data
-ALTER yearly_income TYPE INTEGER;
-
-ALTER TABLE raw_users_data
-ALTER total_debt TYPE INTEGER;
-
-ALTER TABLE raw_users_data
-ALTER credit_score TYPE SMALLINT;
-
-ALTER TABLE raw_users_data
-ALTER num_credit_cards TYPE TINYINT;
+-- Type Casting & PK
+ALTER TABLE users_data
+ALTER COLUMN id TYPE SMALLINT USING CAST(id AS SMALLINT),
+ALTER COLUMN current_age TYPE SMALLINT USING CAST(current_age AS SMALLINT),
+ALTER COLUMN retirement_age TYPE SMALLINT USING CAST(
+  retirement_age AS SMALLINT
+),
+ALTER COLUMN birth_year TYPE SMALLINT USING CAST(birth_year AS SMALLINT),
+ALTER COLUMN birth_month TYPE SMALLINT USING CAST(birth_month AS SMALLINT),
+ALTER COLUMN per_capita_income TYPE INTEGER USING CAST(
+  per_capita_income AS INTEGER
+),
+ALTER COLUMN yearly_income TYPE INTEGER USING CAST(yearly_income AS INTEGER),
+ALTER COLUMN total_debt TYPE INTEGER USING CAST(total_debt AS INTEGER),
+ALTER COLUMN credit_score TYPE SMALLINT USING CAST(credit_score AS SMALLINT),
+ALTER COLUMN num_credit_cards TYPE SMALLINT USING CAST(
+  num_credit_cards AS SMALLINT
+),
+ADD PRIMARY KEY (id);

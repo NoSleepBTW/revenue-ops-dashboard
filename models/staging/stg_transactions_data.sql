@@ -1,42 +1,37 @@
--- Run: duckdb dev.duckdb -s ".read models/staging/stg_transactions_data.sql"
 -- Transform Data
-ALTER TABLE raw_transactions_data
-ALTER id TYPE INTEGER;
+-- Create Timestamp
+ALTER TABLE
+transactions_data
+ADD
+COLUMN IF NOT EXISTS transaction_time VARCHAR(20);
 
--- Primary Key
-ALTER TABLE raw_transactions_data
-ADD PRIMARY KEY (id);
-
-ALTER TABLE raw_transactions_data
-ALTER client_id TYPE SMALLINT;
-
-ALTER TABLE raw_transactions_data
-ALTER card_id TYPE SMALLINT;
-
-ALTER TABLE raw_transactions_data
-ALTER merchant_id TYPE INTEGER;
-
-ALTER TABLE raw_transactions_data
-ALTER mcc TYPE SMALLINT;
-
-ALTER TABLE raw_transactions_data
-ALTER zip TYPE BIGINT;
-
--- Convert date and create seperate timestamp
-ALTER TABLE raw_transactions_data
-ADD COLUMN IF NOT EXISTS transaction_time VARCHAR;
-
-UPDATE raw_transactions_data
+-- Populate Time & Clean Amount (remove $, commas)
+UPDATE
+  transactions_data
 SET
-    transaction_time = strftime ("date"::TIMESTAMP, '%H:%M:%S');
+  transaction_time = TO_CHAR(CAST(date AS TIMESTAMP), 'HH24:MI:SS'),
+  amount = CAST(
+    REPLACE(REPLACE(CAST(amount AS TEXT), '$', ''), ',', '') AS DECIMAL(14, 2)
+  );
 
-ALTER TABLE raw_transactions_data
-ALTER date TYPE DATE;
-
--- Clean amount: remove $ and commas → DECIMAL
-UPDATE raw_transactions_data
-SET
-    amount = REPLACE(REPLACE(amount, '$', ''), ',', '');
-
-ALTER TABLE raw_transactions_data
-ALTER amount TYPE DECIMAL(14, 2) USING amount::DECIMAL(14, 2);
+-- Type Casting & PK
+ALTER TABLE
+transactions_data
+ALTER COLUMN
+id TYPE INTEGER USING CAST(id AS INTEGER),
+ALTER COLUMN
+client_id TYPE SMALLINT USING CAST(client_id AS SMALLINT),
+ALTER COLUMN
+card_id TYPE SMALLINT USING CAST(card_id AS SMALLINT),
+ALTER COLUMN
+merchant_id TYPE INTEGER USING CAST(merchant_id AS INTEGER),
+ALTER COLUMN
+mcc TYPE SMALLINT USING CAST(mcc AS SMALLINT),
+ALTER COLUMN
+zip TYPE BIGINT USING CAST(zip AS BIGINT),
+ALTER COLUMN
+date TYPE DATE USING CAST(date AS DATE),
+ALTER COLUMN
+amount TYPE DECIMAL(14, 2) USING CAST(amount AS DECIMAL(14, 2)),
+ADD
+PRIMARY KEY (id);
