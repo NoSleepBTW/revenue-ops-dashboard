@@ -20,7 +20,7 @@ class RevenueOpsPipeline:
         }
 
     def connect(self):
-        print(f"Connecting to Database...")
+        print(f"\nConnecting to Database...")
         self.engine = create_engine(self.db_url)
         print("Connection Established.\n")
 
@@ -42,10 +42,7 @@ class RevenueOpsPipeline:
 
     def load_raw_data(self):
         # Ingest raw files from data/raw into Postgres
-        print("Starting Raw Data Load...")
-
-        if not self.engine:
-            self.connect()
+        print("\nStarting Raw Data Load...")
 
         total_rows = 0  # Row counter
 
@@ -87,14 +84,13 @@ class RevenueOpsPipeline:
 
     def run_staging_models(self):
         # Executes SQL files stored in models/staging
-        print("Running staging models...")
+        print("\nRunning SQL models (Staging)...")
 
-        if not self.engine:
-            self.connect()
+        sql_files = sorted(list(pathlib.Path("models/staging").glob("*.sql")))
 
         with self.engine.connect() as connection:
-            for sql_file in sorted(self.paths["staging"].glob("*.sql")):
-                file_name = sql_file.stem
+            for sql_file in sql_files:
+                file_name = sql_file.name
 
                 print(f"Applying model: {file_name}...", end=" ", flush=True)
 
@@ -115,16 +111,110 @@ class RevenueOpsPipeline:
                     elapsed = end_time - start_time
                     print(f"Failed → {e} [{elapsed:.2f}s]")
                     connection.rollback()
+                    return
 
-        print("\nPipeline complete.")
+        print("\nStaging complete.")
+
+    def run_index_models(self):
+        # Executes SQL files stored in models/indexing
+        print("\nRunning SQL models (Indexing)...")
+
+        sql_files = sorted(list(pathlib.Path("models/indexing").glob("*.sql")))
+
+        with self.engine.connect() as connection:
+            for sql_file in sql_files:
+                file_name = sql_file.name
+
+                print(f"Applying model: {file_name}...", end=" ", flush=True)
+
+                try:
+                    start_time = time.time()
+
+                    with open(sql_file, "r") as f:
+                        query = f.read()
+
+                    connection.execute(text(query))
+                    connection.commit()
+                    end_time = time.time()
+                    elapsed = end_time - start_time
+                    print(f"→ Success [{elapsed:.2f}s]")
+
+                except Exception as e:
+                    end_time = time.time()
+                    elapsed = end_time - start_time
+                    print(f"Failed → {e} [{elapsed:.2f}s]")
+                    connection.rollback()
+                    return
+
+        print("\nIndexing complete.")
+
+    def drop_foreign_keys(self):
+        print("\nDropping Foreign Key Constraints...")
+
+        # List of Foreign Key names to drop from transactions_data
+        constraints_to_drop = ["fk_client", "fk_card", "fk_mcc"]
+
+        with self.engine.connect() as connection:
+            for constraint in constraints_to_drop:
+                try:
+                    # SQL to drop the constraint IF it exists
+                    query = text(
+                        f"""
+                        ALTER TABLE transactions_data
+                        DROP CONSTRAINT IF EXISTS {constraint};
+                    """
+                    )
+                    connection.execute(query)
+                    connection.commit()
+                    print(f"  - Dropped {constraint}.")
+                except Exception as e:
+                    print(f"  - Failed to drop {constraint}: {e}")
+                    connection.rollback()
+        print("\nForeign Key cleanup complete.\n")
 
 
 if __name__ == "__main__":
     DB_CONNECTION_STRING = os.getenv("DB_CONNECTION_STRING")
+    run = "Y"
 
     if not DB_CONNECTION_STRING:
         raise ValueError("Error: DB_CONNECTION_STRING Not Found in .env File")
 
     pipeline = RevenueOpsPipeline(DB_CONNECTION_STRING)
-    pipeline.load_raw_data()
-    pipeline.run_staging_models()
+
+    # Establish Connection:
+    pipeline.connect()
+
+    try:
+        while run.upper() == "Y":
+
+            answer = input(
+                "Please Select Action:\n1. Drop Foreign Keys\n2. Load Raw Data\n3. Run Staging Models\n4. Run Index Models\n5. Run All Scripts\n"
+            )
+
+            VALID_CHOICE = ["1", "2", "3", "4", "5"]
+
+            if answer not in VALID_CHOICE:
+                print("\nInvalid Selection. Please enter a number between 1 and 5.")
+                continue
+            elif answer == "1":
+                pipeline.drop_foreign_keys()
+            elif answer == "2":
+                pipeline.load_raw_data()
+            elif answer == "3":
+                pipeline.run_staging_models()
+            elif answer == "4":
+                pipeline.run_index_models()
+            elif answer == "5":
+                pipeline.drop_foreign_keys()
+                pipeline.load_raw_data()
+                pipeline.run_staging_models()
+                pipeline.run_index_models()
+
+            run = input("Would you like to run another script?(Y/N): ")
+
+    finally:
+        if pipeline.engine:
+            print("\nClosing connection...")
+            pipeline.engine.dispose()
+        print("Database connection closed.")
