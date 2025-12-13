@@ -1,30 +1,26 @@
-# ⚙️ Project Requirements and Dependencies
+# ⚙️ Technical Requirements & Dependencies
 
-This project relies on a specific set of system software and Python libraries to ensure the data pipeline executes successfully and the database is accessible.
+To ensure reproducibility across different environments, this project relies on containerization and a specific Python toolset.
 
-## 1. System Requirements (External Software)
+## 1. System Infrastructure
 
-The following external software must be installed and running on your local machine:
+* **Docker Desktop:**
+    * **Why:** We use Docker to spin up a consistent, isolated PostgreSQL database version (`postgres:latest`) regardless of the host OS (Windows/Mac/Linux). This mimics a production cloud environment.
+* **Python 3.9+:**
+    * **Why:** The orchestration scripts leverage modern Python features for file handling and type safety.
 
-* **Docker Desktop:** Required to run the PostgreSQL database in a containerized, isolated environment.
-    * **Purpose:** Provides the core **Docker Daemon** and the management interface for container operations. 
-* **PostgreSQL Image:** The official PostgreSQL Docker image (`postgres:latest`) used to spin up the database container.
-    * **Requirement:** The container must be running under the name `revenue-postgres` and exposed on port `5432`.
-* **Python:** Version 3.9+ is recommended.
-    * **Purpose:** Executes the main data orchestration script (`scripts/load-data.py`).
+## 2. Python Libraries
 
-## 2. Python Dependencies (Pip Packages)
+The following libraries are required for the ELT pipeline.
 
-The following libraries must be installed in your Python environment via `pip`.
+| Package | Role | Justification |
+| :--- | :--- | :--- |
+| **`pandas`** | Extract & Transform | Chosen for its efficient handling of CSV/JSON parsing before data hits the database. |
+| **`sqlalchemy`** | ORM / Connection | Provides a secure, abstract layer to interact with SQL, preventing injection attacks. |
+| **`psycopg2-binary`** | DB Driver | The standard, high-performance PostgreSQL adapter for Python. |
+| **`python-dotenv`** | Security | Loads configuration from `.env` files, ensuring secrets (passwords) are never hardcoded in Git. |
 
-| Package Name | Purpose |
-| :--- | :--- |
-| `pandas` | Primary tool for raw data loading, reading CSV/JSON, and initial manipulation (DataFrames). |
-| `sqlalchemy` | Object Relational Mapper (ORM) and core library for connecting Python to the PostgreSQL database engine. |
-| `psycopg2-binary` | The necessary PostgreSQL database adapter (driver) for `sqlalchemy` to communicate with the database. |
-| `python-dotenv` | Used to securely load the database connection string from the local, untracked `.env` file. |
+## 3. Configuration
 
-## 3. Configuration Requirements
-
-* **`.env` File:** A local `.env` file must be created in the project root to store the `DB_CONNECTION_STRING` securely. This file is ignored by Git.
-* **Project Structure:** The directory structure (especially `data/raw/` and `models/staging/`) must be maintained as this is hardcoded in the pipeline script.
+* **Environmental Variables:** The application expects a `.env` file at the root to store the `DB_CONNECTION_STRING` securely.
+* **Directory Structure:** The scripts are path-aware and expect `data/raw/` and `models/` to exist relative to the execution directory.

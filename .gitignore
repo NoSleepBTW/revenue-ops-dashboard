@@ -28,3 +28,7 @@ logs/
 *.json
 *.zip
 *.parquet
+
+# === Temporary / Lock Files ===
+.~lock*
+*.lock

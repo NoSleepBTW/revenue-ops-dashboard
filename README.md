@@ -1,55 +1,96 @@
-# Revenue Operations Dashboard
+# Revenue Operations & Fraud Detection Pipeline
 
-A local-first data pipeline being built to analyze revenue streams and user transaction data.
+**A production-grade, local-first ELT pipeline designed to ingest, validate, and model over 22 million financial records.**
+
+---
+
+## 💼 Executive Summary
+This project simulates a real-world Data Engineering environment for a Fintech company. The goal was to migrate away from ad-hoc analysis (CSV/local files) to a scalable **Centralized Data Platform**.
+
+It ingests **22 million+** raw records (transactions, fraud labels, and user data), performs rigorous data quality checks, detects fraud patterns, and materializes a "One Big Table" (OBT) for high-performance reporting on the core 13 million transactions.
+
+## 🛠 Skills Demonstrated
+* **Data Engineering:** ELT Architecture, Python Scripting, Data Modeling (Star Schema).
+* **Database Management:** PostgreSQL, Indexing Strategies, Foreign Key Constraints, Materialized Views.
+* **DevOps:** Docker Containerization, Environmental Configuration.
+* **Data Quality:** PII Masking, Type Casting, Referential Integrity.
+
+---
 
 ## 🏗 Architecture
+The pipeline follows a modern **ELT (Extract, Load, Transform)** pattern, leveraging the power of the database engine for heavy lifting.
 
-This project uses a production-grade, Python-driven **ELT (Extract, Load, Transform)** pipeline orchestrated against a containerized PostgreSQL database. 
+1.  **Extract & Load:** Python (`pandas` + `sqlalchemy`) streams raw JSON/CSV data into the database.
+2.  **Staging:** SQL transformations clean currency formats, parse dates, and mask sensitive PII (Personal Identifiable Information).
+3.  **Modeling:** Data is normalized into a Star Schema (Fact + Dimensions) with strict Primary/Foreign keys.
+4.  **Serving:** A denormalized Materialized View (`enriched_transactions`) provides a low-latency layer for BI tools.
 
-* **Database:** PostgreSQL (Containerized via Docker) 
-* **Orchestration:** Python/Pandas/SQLAlchemy (`scripts/load-data.py`)
-* **Transformation:** Standard PostgreSQL SQL (Staging, Indexing, Data Marts)
+## 📊 Data Source
+* **Dataset:** [Transactions Fraud Datasets (Kaggle)](https://www.kaggle.com/datasets/computingvictor/transactions-fraud-datasets/data?select=transactions_data.csv)
+* **Volume:** **~22 Million Total Rows** (~13M Transactions + ~9M Fraud History Labels).
 
-## ⚡️ Current Status
+---
 
-**Phase 1: Ingestion & Staging (Complete)**
-* **Architectural Switch:** Successfully migrated from local DuckDB to containerized PostgreSQL for enhanced stability and compliance.
-* **Data Quality:** Raw data ingested, cleaned, and type-cast. Handled complex cleaning of currency strings, date parsing, and PII masking.
-* **Pipeline Run:** The full pipeline, including the 13+ million row transactions table, runs successfully from a single Python script.
-* Scope focused purely on revenue operations (Fraud data removed).
+## 🚀 Project Roadmap & Achievements
 
-**Phase 2: Optimization (Complete)**
-* **High-Performance Indexing:** Implemented targeted indexing strategies on the 13+ million row `transactions_data` table (`date`, `client_id`, `mcc`) to guarantee sub-second query performance for analytics.
-* **Data Integrity:** Established **Primary Keys** on all dimension tables and **Foreign Key constraints** between the Fact table (`transactions_data`) and all Dimension tables (`users_data`, `cards_data`, `mcc_codes`) to enforce referential integrity.
-* **Pipeline Control:** The main script now features a robust, interactive menu for modular execution and safe resource cleanup.
+### ✅ Phase 1: Robust Ingestion (Completed)
+* **Challenge:** Moving from fragile local files to a structured database.
+* **Solution:** Built a Dockerized PostgreSQL instance. Created a Python orchestration script (`load-data.py`) to handle ingestion errors and raw data cleaning.
+* **Scale:** Successfully pipelines the full **22 million row** dataset, including parsing complex nested JSON structures for fraud history.
 
-**Phase 3: Data Marts & Visualization (In Progress)**
-* **Intermediate Marts:** Building denormalized, enriched fact tables for reporting performance.
-* **Visualization:** Streamlit dashboard for key revenue reporting and drill-down analysis.
+### ✅ Phase 2: Optimization & Integrity (Completed)
+* **Challenge:** Queries on the 13M transaction table were slow; data inconsistencies were common.
+* **Solution:**
+    * **Indexing:** Added targeted B-Tree indexes on high-cardinality columns (`client_id`, `mcc`, `date`), achieving sub-second query performance.
+    * **Integrity:** Enforced strict Foreign Key constraints between Transactions and Dimensions (Users, Cards, MCCs) to reject orphaned records.
 
-## 📂 Project Structure
+### 🔄 Phase 3: Reporting Layer (Active)
+* **Challenge:** Analysts needed a simple way to view "enriched" data without writing complex joins.
+* **Solution:**
+    * **Data Mart:** Implemented `enriched_transactions`, a wide Materialized View that pre-joins all dimensions to the 13M transactions.
+    * **Concurrency:** Developed `refresh-view.py` to refresh analytics data concurrently, ensuring zero downtime for end-users during updates.
 
-* `data/raw/`: Source CSV/JSON files (Cards, Transactions, Users, MCC Codes).
-* `models/`: SQL logic.
-    * `staging/`: Current cleaning and standardization scripts (Adds **Primary Keys**).
-    * `indexing/`: Optimization scripts (**Indexes and Foreign Key Constraints**).
-    * `intermediate/`: **(NEW)** Denormalized fact tables/Data Marts (Planned joins).
-    * `reporting/`: **(FUTURE)** Final aggregated tables for dashboards.
+---
+
+## 📂 Repository Structure
+* `data/raw/`: Raw source files (excluded from repo).
+* `models/`:
+    * `staging/`: Cleaning logic and PII masking.
+    * `indexing/`: Performance tuning and constraints.
+    * `intermediate/`: The serving layer (Materialized Views).
+    * `refresh/`: Maintenance scripts.
 * `scripts/`:
-    * `load-data.py`: **(REFINED)** The core orchestration script featuring an **interactive menu** for modular execution (Load, Stage, Index, Full Run).
-* `.env`: Stores the PostgreSQL database connection string.
+    * `load-data.py`: Main orchestration (CLI menu driven).
+    * `refresh-view.py`: Zero-downtime refresh utility.
 
-## 🚀 How to Run
+---
 
-### 1. Start the Database (Docker)
+## 💻 How to Run
 
-Ensure the Docker Desktop application is running. Launch the PostgreSQL container using the following command (or use your `docker-compose.yml` if available). **Update the POSTGRES\_PASSWORD to your secret value.**
+### 1. Prerequisites
+Ensure **Docker Desktop** and **Python 3.9+** are installed.
 
+### 2. Start the Database
+Spin up the isolated database container:
 ```bash
 docker run -d \
     --name revenue-postgres \
     -e POSTGRES_USER=admin \
-    -e POSTGRES_PASSWORD=<YOUR_SECRET_DB_PASSWORD> \
+    -e POSTGRES_PASSWORD=<YOUR_SECRET_PASSWORD> \
     -e POSTGRES_DB=revenue_ops \
     -p 5432:5432 \
     postgres:latest
+```
+
+### 3. Configure Environment
+Create a `.env` file in the root directory:
+```text
+DB_CONNECTION_STRING=postgresql://admin:<YOUR_SECRET_PASSWORD>@localhost:5432/revenue_ops
+```
+
+### 4. Execute Pipeline
+Run the interactive orchestration script:
+```bash
+python scripts/load-data.py
+```
+*Select **Option 6** for the full End-to-End run (Load -> Stage -> Mart -> Index).*
