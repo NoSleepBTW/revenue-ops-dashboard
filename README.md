@@ -1,54 +1,60 @@
-# Revenue Operations & Fraud Detection Pipeline
+# Revenue Operations & Fraud Detection Platform
 
-**A production-grade, local-first ELT pipeline designed to ingest, validate, and model over 22 million financial records.**
+**A production-grade ELT pipeline and Analytics Dashboard designed to ingest, validate, and visualize over 22 million financial records.**
 
 ---
 
 ## 💼 Executive Summary
-This project simulates a real-world Data Engineering environment for a Fintech company. The goal was to migrate away from ad-hoc analysis (CSV/local files) to a scalable **Centralized Data Platform**.
+This project simulates a complete Data Engineering lifecycle for a Fintech company. It migrates ad-hoc data processes into a scalable **Centralized Data Platform**.
 
-It ingests **22 million+** raw records (transactions, fraud labels, and user data), performs rigorous data quality checks, detects fraud patterns, and materializes a "One Big Table" (OBT) for high-performance reporting on the core 13 million transactions.
+The system ingests **22 million+** raw records, detects fraud patterns using SQL logic, and surfaces insights via a live **Streamlit Dashboard**.
 
-## 🛠 Skills Demonstrated
-* **Data Engineering:** ELT Architecture, Python Scripting, Data Modeling (Star Schema).
-* **Database Management:** PostgreSQL, Indexing Strategies, Foreign Key Constraints, Materialized Views.
-* **DevOps:** Docker Containerization, Environmental Configuration.
-* **Data Quality:** PII Masking, Type Casting, Referential Integrity.
+## 🚀 Key Features
 
----
+### 1. Robust ELT Pipeline
+* **Ingestion:** Python scripts stream raw JSON/CSV data into PostgreSQL.
+* **Data Quality:** Automated cleaning of currency formats, date parsing, and PII masking.
+* **Integrity:** Enforced Foreign Key constraints to reject orphaned records.
 
-## 🏗 Architecture
-The pipeline follows a modern **ELT (Extract, Load, Transform)** pattern, leveraging the power of the database engine for heavy lifting.
+### 2. High-Performance Data Modeling
+* **Star Schema:** Normalized data into Fact and Dimension tables.
+* **Indexing:** Optimized B-Tree indexes on `client_id` and `transaction_date` for sub-second queries.
+* **Materialized Views:** Pre-computed "One Big Table" (`enriched_transactions`) for fast analytics.
 
-1.  **Extract & Load:** Python (`pandas` + `sqlalchemy`) streams raw JSON/CSV data into the database.
-2.  **Staging:** SQL transformations clean currency formats, parse dates, and mask sensitive PII (Personal Identifiable Information).
-3.  **Modeling:** Data is normalized into a Star Schema (Fact + Dimensions) with strict Primary/Foreign keys.
-4.  **Serving:** A denormalized Materialized View (`enriched_transactions`) provides a low-latency layer for BI tools.
-
-## 📊 Data Source
-* **Dataset:** [Transactions Fraud Datasets (Kaggle)](https://www.kaggle.com/datasets/computingvictor/transactions-fraud-datasets/data?select=transactions_data.csv)
-* **Volume:** **~22 Million Total Rows** (~13M Transactions + ~9M Fraud History Labels).
+### 3. Interactive Dashboard
+* **Tech Stack:** Streamlit + Altair.
+* **Capabilities:** Tracks the "Vampire Index" (fraud by hour), identifies high-risk merchant categories, and monitors real-time financial loss.
 
 ---
 
-## 🚀 Project Roadmap & Achievements
+## ⚙️ Technical Requirements & Dependencies
 
-### ✅ Phase 1: Robust Ingestion (Completed)
-* **Challenge:** Moving from fragile local files to a structured database.
-* **Solution:** Built a Dockerized PostgreSQL instance. Created a Python orchestration script (`load-data.py`) to handle ingestion errors and raw data cleaning.
-* **Scale:** Successfully pipelines the full **22 million row** dataset, including parsing complex nested JSON structures for fraud history.
+To ensure reproducibility across different environments, this project relies on containerization and a specific Python toolset.
 
-### ✅ Phase 2: Optimization & Integrity (Completed)
-* **Challenge:** Queries on the 13M transaction table were slow; data inconsistencies were common.
-* **Solution:**
-    * **Indexing:** Added targeted B-Tree indexes on high-cardinality columns (`client_id`, `mcc`, `date`), achieving sub-second query performance.
-    * **Integrity:** Enforced strict Foreign Key constraints between Transactions and Dimensions (Users, Cards, MCCs) to reject orphaned records.
+### 1. System Infrastructure
 
-### 🔄 Phase 3: Reporting Layer (Active)
-* **Challenge:** Analysts needed a simple way to view "enriched" data without writing complex joins.
-* **Solution:**
-    * **Data Mart:** Implemented `enriched_transactions`, a wide Materialized View that pre-joins all dimensions to the 13M transactions.
-    * **Concurrency:** Developed `refresh-view.py` to refresh analytics data concurrently, ensuring zero downtime for end-users during updates.
+* **Docker Desktop:**
+    * **Why:** We use Docker to spin up a consistent, isolated PostgreSQL database version (`postgres:latest`) regardless of the host OS (Windows/Mac/Linux). This mimics a production cloud environment.
+* **Python 3.9+:**
+    * **Why:** The orchestration scripts leverage modern Python features for file handling and type safety.
+
+### 2. Python Libraries
+
+The following libraries are required for the ELT pipeline and Dashboard. You can install them via `pip install -r requirements.txt`.
+
+| Package | Role | Justification |
+| :--- | :--- | :--- |
+| **`pandas`** | Extract & Transform | Efficient handling of CSV/JSON parsing before data hits the database. |
+| **`sqlalchemy`** | ORM / Connection | Secure, abstract layer for SQL interaction to prevent injection attacks. |
+| **`psycopg2-binary`** | DB Driver | The standard, high-performance PostgreSQL adapter for Python. |
+| **`python-dotenv`** | Security | Loads configuration from `.env` files, ensuring secrets (passwords) are never hardcoded in Git. |
+| **`streamlit`** | Visualization | Framework used to build the interactive Risk Profile dashboard. |
+| **`altair`** | Analytics | Declarative statistical visualization library for the dashboard charts. |
+
+### 3. Configuration
+
+* **Environmental Variables:** The application expects a `.env` file at the root to store the `DB_CONNECTION_STRING` securely.
+* **Directory Structure:** The scripts are path-aware and expect `data/raw/` and `models/` to exist relative to the execution directory.
 
 ---
 
@@ -58,39 +64,66 @@ The pipeline follows a modern **ELT (Extract, Load, Transform)** pattern, levera
     * `staging/`: Cleaning logic and PII masking.
     * `indexing/`: Performance tuning and constraints.
     * `intermediate/`: The serving layer (Materialized Views).
-    * `refresh/`: Maintenance scripts.
+    * `queries/`: SQL backing the Streamlit dashboard.
 * `scripts/`:
     * `load-data.py`: Main orchestration (CLI menu driven).
     * `refresh-view.py`: Zero-downtime refresh utility.
+* `dashboard/`:
+    * `app.py`: The entry point for the Streamlit visualization.
 
 ---
 
 ## 💻 How to Run
 
 ### 1. Prerequisites
-Ensure **Docker Desktop** and **Python 3.9+** are installed.
+* **Docker Desktop** (for the database)
+* **Python 3.9+**
 
 ### 2. Start the Database
-Spin up the isolated database container:
+Spin up the isolated PostgreSQL container:
 ```bash
 docker run -d \
     --name revenue-postgres \
     -e POSTGRES_USER=admin \
-    -e POSTGRES_PASSWORD=<YOUR_SECRET_PASSWORD> \
+    -e POSTGRES_PASSWORD=password \
     -e POSTGRES_DB=revenue_ops \
     -p 5432:5432 \
     postgres:latest
+
 ```
 
-### 3. Configure Environment
+### 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+
+```
+
+### 4. Configure Environment
+
 Create a `.env` file in the root directory:
+
 ```text
-DB_CONNECTION_STRING=postgresql://admin:<YOUR_SECRET_PASSWORD>@localhost:5432/revenue_ops
+DB_CONNECTION_STRING=postgresql://admin:password@localhost:5432/revenue_ops
+
 ```
 
-### 4. Execute Pipeline
-Run the interactive orchestration script:
+### 5. Run the Pipeline
+
+Initialize the database, load raw data, and build models:
+
 ```bash
 python scripts/load-data.py
+
 ```
-*Select **Option 6** for the full End-to-End run (Load -> Stage -> Mart -> Index).*
+
+*Select **Option 6** in the menu to run the full End-to-End pipeline.*
+
+### 6. Launch Dashboard
+
+Start the analytics interface:
+
+```bash
+streamlit run dashboard/app.py
+
+```
