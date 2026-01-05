@@ -1,0 +1,57 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database - accessible from Power BI on your Windows machine
+  postgres:
+    image: postgres:16
+    container_name: revenue-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-revenue_ops}
+    ports:
+      - "5432:5432"
+    volumes:
+      # Persistent data storage on your NAS
+      - postgres_data:/var/lib/postgresql/data
+      # Custom PostgreSQL config for network access
+      - ./docker/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    command: >
+      postgres
+      -c hba_file=/etc/postgresql/pg_hba.conf
+      -c listen_addresses='*'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-revenue_ops}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - revenue-net
+
+  # Streamlit Dashboard (optional - run with: docker compose --profile dashboard up)
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: revenue-dashboard
+    restart: unless-stopped
+    profiles:
+      - dashboard
+    environment:
+      DB_CONNECTION_STRING: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-revenue_ops}
+    ports:
+      - "8501:8501"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - revenue-net
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  revenue-net:
+    driver: bridge

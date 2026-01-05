@@ -8,10 +8,22 @@ from pathlib import Path
 env_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
+# Module-level engine singleton (reused across all queries)
+_engine = None
+
+
+def get_engine():
+    """Returns a shared SQLAlchemy engine instance."""
+    global _engine
+    if _engine is None:
+        db_url = os.getenv("DB_CONNECTION_STRING")
+        if db_url:
+            _engine = create_engine(db_url, pool_pre_ping=True)
+    return _engine
+
 
 class DataLoader:
     def __init__(self, query_path):
-        self.db_url = os.getenv("DB_CONNECTION_STRING")
         self.query_path = Path(query_path)
 
     def get_data(self, year=None):
@@ -19,7 +31,8 @@ class DataLoader:
         Loads data from SQL file.
         If 'year' is provided, injects SQL into '-- FILTERS --' placeholder.
         """
-        if not self.db_url:
+        engine = get_engine()
+        if engine is None:
             print("ERROR: DB_CONNECTION_STRING not found")
             return pd.DataFrame()
 
@@ -44,7 +57,6 @@ class DataLoader:
                 except ValueError:
                     print(f"Invalid year format: {year}")
 
-            engine = create_engine(self.db_url)
             df = pd.read_sql(query, engine)
             return df
 

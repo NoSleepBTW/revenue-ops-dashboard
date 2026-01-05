@@ -70,42 +70,49 @@ The following libraries are required for the ELT pipeline and Dashboard. You can
     * `refresh-view.py`: Zero-downtime refresh utility.
 * `dashboard/`:
     * `app.py`: The entry point for the Streamlit visualization.
+* `docker/`:
+    * `pg_hba.conf`: PostgreSQL client authentication configuration.
 
 ---
 
 ## 💻 How to Run
 
 ### 1. Prerequisites
-* **Docker Desktop** (for the database)
+* **Docker & Docker Compose** (for the database)
 * **Python 3.9+**
 
-### 2. Start the Database
-Spin up the isolated PostgreSQL container:
-```bash
-docker run -d \
-    --name revenue-postgres \
-    -e POSTGRES_USER=admin \
-    -e POSTGRES_PASSWORD=password \
-    -e POSTGRES_DB=revenue_ops \
-    -p 5432:5432 \
-    postgres:latest
+### 2. Configure Environment
 
+Copy the example environment file and customize it:
+
+```bash
+cp .env.example .env
 ```
 
-### 3. Install Dependencies
+Edit `.env` with your preferred credentials:
+```text
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=your_secure_password_here
+POSTGRES_DB=revenue_ops
+DB_CONNECTION_STRING=postgresql://admin:your_secure_password_here@localhost:5432/revenue_ops
+```
+
+### 3. Start the Database
+
+Using Docker Compose:
+```bash
+docker compose up -d postgres
+```
+
+This spins up a PostgreSQL 16 container with:
+- Persistent data storage
+- Network access configured for Power BI/external tools
+- Health checks enabled
+
+### 4. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
-
-```
-
-### 4. Configure Environment
-
-Create a `.env` file in the root directory:
-
-```text
-DB_CONNECTION_STRING=postgresql://admin:password@localhost:5432/revenue_ops
-
 ```
 
 ### 5. Run the Pipeline
@@ -114,16 +121,19 @@ Initialize the database, load raw data, and build models:
 
 ```bash
 python scripts/load-data.py
-
 ```
 
 *Select **Option 6** in the menu to run the full End-to-End pipeline.*
 
 ### 6. Launch Dashboard
 
-Start the analytics interface:
-
+**Option A:** Run locally:
 ```bash
 streamlit run dashboard/app.py
-
 ```
+
+**Option B:** Run via Docker (includes database):
+```bash
+docker compose --profile dashboard up -d
+```
+Access the dashboard at `http://localhost:8501`

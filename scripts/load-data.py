@@ -47,6 +47,37 @@ class RevenueOpsPipeline:
                 return pd.read_json(file_path)
         return None
 
+    def _execute_sql_files(self, folder_key, stage_name):
+        """Generic method to execute all SQL files in a given folder."""
+        print(f"\nRunning SQL models ({stage_name})...")
+
+        sql_files = sorted(list(self.paths[folder_key].glob("*.sql")))
+
+        with self.engine.connect() as connection:
+            for sql_file in sql_files:
+                file_name = sql_file.name
+                print(f"Applying model: {file_name}...", end=" ", flush=True)
+
+                try:
+                    start_time = time.time()
+
+                    with open(sql_file, "r") as f:
+                        query = f.read()
+
+                    connection.execute(text(query))
+                    connection.commit()
+                    elapsed = time.time() - start_time
+                    print(f"-> Success [{elapsed:.2f}s]")
+
+                except Exception as e:
+                    elapsed = time.time() - start_time
+                    print(f"Failed -> {e} [{elapsed:.2f}s]")
+                    connection.rollback()
+                    return False
+
+        print(f"\n{stage_name} complete.")
+        return True
+
     def load_raw_data(self):
         # Ingest raw files from data/raw into Postgres
         print("\nStarting Raw Data Load...")
@@ -90,70 +121,12 @@ class RevenueOpsPipeline:
         print(f"Done. Total Rows Loaded: {total_rows:,}\n")
 
     def run_staging_models(self):
-        # Executes SQL files stored in models/staging
-        print("\nRunning SQL models (Staging)...")
-
-        sql_files = sorted(list(pathlib.Path("models/staging").glob("*.sql")))
-
-        with self.engine.connect() as connection:
-            for sql_file in sql_files:
-                file_name = sql_file.name
-
-                print(f"Applying model: {file_name}...", end=" ", flush=True)
-
-                try:
-                    start_time = time.time()
-
-                    with open(sql_file, "r") as f:
-                        query = f.read()
-
-                    connection.execute(text(query))
-                    connection.commit()
-                    end_time = time.time()
-                    elapsed = end_time - start_time
-                    print(f"→ Success [{elapsed:.2f}s]")
-
-                except Exception as e:
-                    end_time = time.time()
-                    elapsed = end_time - start_time
-                    print(f"Failed → {e} [{elapsed:.2f}s]")
-                    connection.rollback()
-                    return
-
-        print("\nStaging complete.")
+        """Executes SQL files stored in models/staging"""
+        self._execute_sql_files("staging", "Staging")
 
     def run_index_models(self):
-        # Executes SQL files stored in models/indexing
-        print("\nRunning SQL models (Indexing)...")
-
-        sql_files = sorted(list(pathlib.Path("models/indexing").glob("*.sql")))
-
-        with self.engine.connect() as connection:
-            for sql_file in sql_files:
-                file_name = sql_file.name
-
-                print(f"Applying model: {file_name}...", end=" ", flush=True)
-
-                try:
-                    start_time = time.time()
-
-                    with open(sql_file, "r") as f:
-                        query = f.read()
-
-                    connection.execute(text(query))
-                    connection.commit()
-                    end_time = time.time()
-                    elapsed = end_time - start_time
-                    print(f"→ Success [{elapsed:.2f}s]")
-
-                except Exception as e:
-                    end_time = time.time()
-                    elapsed = end_time - start_time
-                    print(f"Failed → {e} [{elapsed:.2f}s]")
-                    connection.rollback()
-                    return
-
-        print("\nIndexing complete.")
+        """Executes SQL files stored in models/indexing"""
+        self._execute_sql_files("indexing", "Indexing")
 
     def drop_foreign_keys(self):
         print("\nDropping Foreign Key Constraints...")
@@ -188,36 +161,8 @@ class RevenueOpsPipeline:
         print("\nForeign Key cleanup complete.")
 
     def run_data_mart(self):
-        print("\nCreating Data Mart for Querying...")
-
-        sql_files = sorted(list(pathlib.Path("models/intermediate").glob("*.sql")))
-
-        with self.engine.connect() as connection:
-            for sql_file in sql_files:
-                file_name = sql_file.name
-
-                print(f"Creating Mart: {file_name}...", end=" ", flush=True)
-
-                try:
-                    start_time = time.time()
-
-                    with open(sql_file, "r") as f:
-                        query = f.read()
-
-                    connection.execute(text(query))
-                    connection.commit()
-                    end_time = time.time()
-                    elapsed = end_time - start_time
-                    print(f"→ Success [{elapsed:.2f}s]")
-
-                except Exception as e:
-                    end_time = time.time()
-                    elapsed = end_time - start_time
-                    print(f"Failed → {e} [{elapsed:.2f}s]")
-                    connection.rollback()
-                    return
-
-        print("\nData Mart creation complete.")
+        """Creates materialized views in models/intermediate"""
+        self._execute_sql_files("intermediate", "Data Mart")
 
 
 if __name__ == "__main__":
